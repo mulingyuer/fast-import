@@ -2,6 +2,7 @@
   "name": "fast-import",
   "displayName": "fast-import",
   "description": "fast-import extension",
+  "publisher": "mulingyuer",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.102.0"
