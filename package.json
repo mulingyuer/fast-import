@@ -6,16 +6,31 @@
   "engines": {
     "vscode": "^1.102.0"
   },
+  "license": "SEE LICENSE IN LICENSE",
+  "icon": "public/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mulingyuer/fast-import"
+  },
+  "bugs": {
+    "url": "https://github.com/mulingyuer/fast-import/issues"
+  },
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "galleryBanner": {
+    "color": "#3e3838",
+    "theme": "dark"
+  },
+  "activationEvents": [
+    "onLanguage"
+  ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
       {
         "command": "fast-import.moveToBraces",
-        "title": "移动到括号"
+        "title": "快速引入"
       }
     ],
     "keybindings": [
