@@ -31,7 +31,7 @@
     "commands": [
       {
         "command": "fast-import.moveToBraces",
-        "title": "快速引入"
+        "title": "快速定位 (Import/解构赋值)"
       }
     ],
     "keybindings": [
