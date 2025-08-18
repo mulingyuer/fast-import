@@ -49,3 +49,9 @@ var {} = someObject;
 ## 快捷键
 
 - `Alt+I` - 智能快速定位（支持import引入和解构赋值）
+
+## 🔗 相关资源
+
+1. vscode内置图标：[codicon](https://microsoft.github.io/vscode-codicons/dist/codicon.html)
+2. 插件发布网站：[manage](https://marketplace.visualstudio.com/manage)
+3. 插件发布网站：[open-vsx](https://open-vsx.org/user-settings/extensions)
