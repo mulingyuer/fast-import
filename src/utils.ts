@@ -1,7 +1,7 @@
 /*
  * @Author: mulingyuer
  * @Date: 2025-07-18 14:04:05
- * @LastEditTime: 2025-08-18 10:18:03
+ * @LastEditTime: 2025-08-19 17:04:11
  * @LastEditors: mulingyuer
  * @Description: 工具方法
  * @FilePath: \fast-import\src\utils.ts
@@ -169,35 +169,21 @@ export function findDestructuringPosition(
   const selection = editor.selection;
   const cursorLine = selection.active.line; // 光标所在行
 
-  // 向上查找const、let或var关键字
+  // 1. 向上查找const、let或var关键字
   const searchLimit = Math.max(0, cursorLine - 20);
   for (let i = cursorLine; i >= searchLimit; i--) {
     const currentLineText = document.lineAt(i).text;
+    const match = /\b(const|let|var)\b/.exec(currentLineText);
 
-    // 使用正则表达式查找const、let或var关键字（确保是完整单词）
-    const constMatch = /\bconst\b/.exec(currentLineText);
-    const letMatch = /\blet\b/.exec(currentLineText);
-    const varMatch = /\bvar\b/.exec(currentLineText);
-
-    if (constMatch || letMatch || varMatch) {
-      const match = constMatch || letMatch || varMatch;
-      let keyword = "";
-
-      if (constMatch) keyword = "const";
-      else if (letMatch) keyword = "let";
-      else if (varMatch) keyword = "var";
-
-      data.keyword.type = keyword as "const" | "let" | "var";
+    if (match) {
+      const keyword = match[1] as "const" | "let" | "var";
+      data.keyword.type = keyword;
       data.keyword.line = i;
       data.startLine = i;
-
-      if (match?.index !== undefined) {
-        const startIndex = match.index;
-        const endIndex = startIndex + keyword.length;
-        data.keyword.index = [startIndex, endIndex];
-      }
-
-      break; // 找到关键字，退出循环
+      const startIndex = match.index;
+      const endIndex = startIndex + keyword.length;
+      data.keyword.index = [startIndex, endIndex];
+      break;
     }
   }
 
@@ -207,50 +193,92 @@ export function findDestructuringPosition(
     return data;
   }
 
-  // 查找结束位置（查找分号或赋值语句结束）
+  // 2. 查找结束位置（使用括号平衡检查）
+  let openParen = 0; // 圆括号 ( )
+  let openBrace = 0; // 花括号 { }
+  let openBracket = 0; // 方括号 [ ]
+  let assignmentOperatorFound = false;
+
   const endLimit = Math.min(data.startLine + 20, document.lineCount);
   for (let i = data.startLine; i < endLimit; i++) {
     const currentLineText = document.lineAt(i).text;
+    let textToScan = currentLineText;
 
-    // 查找赋值操作符和可能的结束符号
-    if (/=/.test(currentLineText)) {
-      // 如果当前行包含分号，说明语句在当前行结束
-      if (/;/.test(currentLineText)) {
-        data.endLine = i;
-        break;
+    // 在起始行，我们只关心等号右边的括号平衡
+    // 因为等号左边的 { } 是解构语法，不是需要配对的块
+    if (i === data.startLine) {
+      const equalSignIndex = currentLineText.indexOf("=");
+      if (equalSignIndex !== -1) {
+        assignmentOperatorFound = true;
+        textToScan = currentLineText.substring(equalSignIndex + 1);
       }
-      // 如果没有分号，继续查找下一行
-      data.endLine = i;
+    } else if (currentLineText.includes("=")) {
+      assignmentOperatorFound = true;
     }
 
-    // 如果找到分号，说明语句结束
-    if (i > data.startLine && /;/.test(currentLineText)) {
+    // 扫描当前行，更新括号计数
+    // 注意：这个简单实现未处理字符串或注释中的括号，但在多数格式化良好的代码中已足够
+    for (const char of textToScan) {
+      switch (char) {
+        case "(":
+          openParen++;
+          break;
+        case ")":
+          openParen--;
+          break;
+        case "{":
+          openBrace++;
+          break;
+        case "}":
+          openBrace--;
+          break;
+        case "[":
+          openBracket++;
+          break;
+        case "]":
+          openBracket--;
+          break;
+      }
+    }
+
+    // 检查语句是否结束
+    // 条件：找到等号后，所有括号都已闭合，并且行尾是分号或最后一个括号
+    if (
+      assignmentOperatorFound &&
+      openParen === 0 &&
+      openBrace === 0 &&
+      openBracket === 0
+    ) {
       data.endLine = i;
-      break;
+      // 如果以分号结尾，那么这绝对是语句的末尾，可以停止搜索
+      if (currentLineText.trim().endsWith(";")) {
+        break;
+      }
+      // 如果没有分号，我们暂时认为这里是结尾，但继续向下看，以防有链式调用等情况
+      // e.g. const a = { b: 1 }
+      // .c;
+    } else {
+      // 如果未平衡，则将当前行暂定为结束行，继续向下查找
+      data.endLine = i;
     }
   }
 
-  // 如果没有找到结束位置，默认为起始行
+  // 如果循环结束仍未找到平衡点（可能代码有误或超出搜索范围），则标记为无效
   if (data.endLine === -1) {
-    data.endLine = data.startLine;
+    data.isValid = false;
+    data.validMessage = "未能确定解构语句的结束位置。";
+    return data;
   }
 
-  // 验证是否为解构赋值（检查等号左边是否包含大括号）
+  // 3. 验证是否为解构赋值 (逻辑可以简化)
   let hasDestructuring = false;
-  for (let i = data.startLine; i <= data.endLine; i++) {
-    const currentLineText = document.lineAt(i).text;
-    const equalIndex = currentLineText.indexOf("=");
-
-    if (equalIndex !== -1) {
-      // 只检查等号左边的部分
-      const leftPart = currentLineText.substring(0, equalIndex);
-      if (
-        /\{.*\}/.test(leftPart) ||
-        (/\{/.test(leftPart) && /\}/.test(leftPart))
-      ) {
-        hasDestructuring = true;
-        break;
-      }
+  // 只需要检查起始行等号左边是否有大括号即可
+  const startLineText = document.lineAt(data.startLine).text;
+  const equalIndex = startLineText.indexOf("=");
+  if (equalIndex !== -1) {
+    const leftPart = startLineText.substring(0, equalIndex);
+    if (leftPart.includes("{") && leftPart.includes("}")) {
+      hasDestructuring = true;
     }
   }
 
@@ -260,7 +288,7 @@ export function findDestructuringPosition(
     return data;
   }
 
-  // 如果光标位置不在范围内，则认为是无效的
+  // 4. 如果光标位置不在范围内，则认为是无效的 (逻辑不变)
   if (cursorLine < data.startLine || cursorLine > data.endLine) {
     data.isValid = false;
     data.validMessage = "光标位置不在const/let解构赋值范围内！";
