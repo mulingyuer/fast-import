@@ -14,6 +14,7 @@ import type {
   FindImportPositionData,
   FindDestructuringPositionData,
   BraceSearchType,
+  BracketType,
 } from "./types";
 
 /** 查找import引入的相关位置数据 */
@@ -95,11 +96,11 @@ export function findImportPosition(
   return data;
 }
 
-/** 在指定起始行数中查找大括号位置信息 */
+/** 在指定起始行数中查找括号位置信息 */
 export function findBracePosition(
   params: FindBracePositionParams
 ): FindBracePositionData {
-  const { editor, startLine, endLine, type } = params;
+  const { editor, startLine, endLine, type, bracketType = "curly" } = params;
   const document = editor.document;
   const data: FindBracePositionData = {
     isStartWithBrace: false,
@@ -109,7 +110,12 @@ export function findBracePosition(
     endBraceLine: 0,
     endBraceIndex: -1,
     isWithBrace: false,
+    bracketType,
   };
+
+  // 根据括号类型确定要查找的字符
+  const startChar = bracketType === "curly" ? "{" : "[";
+  const endChar = bracketType === "curly" ? "}" : "]";
 
   for (let i = startLine; i <= endLine; i++) {
     if (data.isStartWithBrace && data.isEndWithBrace) {
@@ -119,7 +125,7 @@ export function findBracePosition(
     const currentLineText = document.lineAt(i).text;
     let searchText = currentLineText;
 
-    // 如果是解构赋值类型，只在等号左边查找大括号
+    // 如果是解构赋值类型，只在等号左边查找括号
     if (type === "destructuring") {
       const equalIndex = currentLineText.indexOf("=");
       searchText =
@@ -128,8 +134,8 @@ export function findBracePosition(
           : currentLineText;
     }
 
-    const startBraceIndex = searchText.indexOf("{");
-    const endBraceIndex = searchText.lastIndexOf("}");
+    const startBraceIndex = searchText.indexOf(startChar);
+    const endBraceIndex = searchText.lastIndexOf(endChar);
 
     if (startBraceIndex !== -1 && !data.isStartWithBrace) {
       data.isStartWithBrace = true;
@@ -270,21 +276,23 @@ export function findDestructuringPosition(
     return data;
   }
 
-  // 3. 验证是否为解构赋值 (逻辑可以简化)
+  // 3. 验证是否为解构赋值（支持对象和数组解构）
   let hasDestructuring = false;
-  // 只需要检查起始行等号左边是否有大括号即可
+  // 检查起始行等号左边是否有大括号或方括号
   const startLineText = document.lineAt(data.startLine).text;
   const equalIndex = startLineText.indexOf("=");
   if (equalIndex !== -1) {
     const leftPart = startLineText.substring(0, equalIndex);
-    if (leftPart.includes("{") && leftPart.includes("}")) {
+    // 检查对象解构 {} 或数组解构 []
+    if ((leftPart.includes("{") && leftPart.includes("}")) || 
+        (leftPart.includes("[") && leftPart.includes("]"))) {
       hasDestructuring = true;
     }
   }
 
   if (!hasDestructuring) {
     data.isValid = false;
-    data.validMessage = "未找到解构赋值语法（等号左边的大括号）";
+    data.validMessage = "未找到解构赋值语法（等号左边的大括号或方括号）";
     return data;
   }
 
@@ -296,4 +304,34 @@ export function findDestructuringPosition(
   }
 
   return data;
+}
+
+/** 检测解构赋值的括号类型（对象解构或数组解构） */
+export function detectDestructuringBracketType(
+  editor: vscode.TextEditor,
+  startLine: number,
+  endLine: number
+): BracketType | null {
+  const document = editor.document;
+  
+  for (let i = startLine; i <= endLine; i++) {
+    const currentLineText = document.lineAt(i).text;
+    const equalIndex = currentLineText.indexOf("=");
+    
+    if (equalIndex !== -1) {
+      const leftPart = currentLineText.substring(0, equalIndex);
+      
+      // 检查是否有大括号（对象解构）
+      if (leftPart.includes("{") && leftPart.includes("}")) {
+        return "curly";
+      }
+      
+      // 检查是否有方括号（数组解构）
+      if (leftPart.includes("[") && leftPart.includes("]")) {
+        return "square";
+      }
+    }
+  }
+  
+  return null;
 }

@@ -31,6 +31,9 @@ export interface FindImportPositionData {
 /** 大括号查找类型 */
 export type BraceSearchType = "import" | "destructuring";
 
+/** 括号类型 */
+export type BracketType = "curly" | "square"; // curly: {}, square: []
+
 /** 在指定起始行数中查找大括号位置信息参数 */
 export interface FindBracePositionParams {
   editor: vscode.TextEditor;
@@ -40,24 +43,28 @@ export interface FindBracePositionParams {
   endLine: number;
   /** 查找类型 */
   type: BraceSearchType;
+  /** 括号类型，默认为大括号 */
+  bracketType?: BracketType;
 }
 
 /** 在指定起始行数中查找大括号位置信息数据 */
 export interface FindBracePositionData {
-  /** 是否存在开始大括号 */
+  /** 是否存在开始括号 */
   isStartWithBrace: boolean;
-  /** 开始大括号行数 */
+  /** 开始括号行数 */
   startBraceLine: number;
-  /** 开始大括号位置 */
+  /** 开始括号位置 */
   startBraceIndex: number;
-  /** 是否存在结束大括号 */
+  /** 是否存在结束括号 */
   isEndWithBrace: boolean;
-  /** 结束大括号行数 */
+  /** 结束括号行数 */
   endBraceLine: number;
-  /** 结束大括号位置 */
+  /** 结束括号位置 */
   endBraceIndex: number;
-  /** 是否存在大括号 */
+  /** 是否存在括号 */
   isWithBrace: boolean;
+  /** 括号类型 */
+  bracketType: BracketType;
 }
 
 /** 查找const/let/var解构赋值的相关位置数据 */

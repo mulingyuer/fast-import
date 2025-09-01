@@ -3,6 +3,7 @@ import {
   findBracePosition,
   findImportPosition,
   findDestructuringPosition,
+  detectDestructuringBracketType,
 } from "./utils";
 
 export function activate(context: vscode.ExtensionContext) {
@@ -25,9 +26,6 @@ export function activate(context: vscode.ExtensionContext) {
           endLine: importData.endLine,
           type: "import",
         });
-
-        console.table(importData);
-        console.table(braceData);
 
         if (!braceData.isWithBrace) {
           // 不存在大括号，说明是默认引入，将光标移动到 import 后面
@@ -58,21 +56,31 @@ export function activate(context: vscode.ExtensionContext) {
       const destructuringData = findDestructuringPosition(editor);
 
       if (destructuringData.isValid) {
+        // 检测解构类型（对象解构或数组解构）
+        const bracketType = detectDestructuringBracketType(
+          editor,
+          destructuringData.startLine,
+          destructuringData.endLine
+        );
+
+        if (!bracketType) {
+          vscode.window.showErrorMessage("无法确定解构赋值的括号类型");
+          return;
+        }
+
         // 处理解构赋值
         const braceData = findBracePosition({
           editor: editor,
           startLine: destructuringData.startLine,
           endLine: destructuringData.endLine,
           type: "destructuring",
+          bracketType: bracketType,
         });
 
-        console.table(destructuringData);
-        console.table(braceData);
-
-        // 不存在大括号，大概率是不会触发这个if分支，因为isValid必须有大括号才会返回true
+        // 不存在括号，大概率是不会触发这个if分支，因为isValid必须有括号才会返回true
         if (!braceData.isWithBrace) return;
 
-        // 存在大括号，将光标移动到}前面
+        // 存在括号，将光标移动到结束括号前面
         const newPosition = new vscode.Position(
           braceData.endBraceLine,
           braceData.endBraceIndex
