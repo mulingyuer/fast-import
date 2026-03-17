@@ -74,6 +74,12 @@ export function findImportPosition(
     }
   }
 
+  if (data.endLine === -1) {
+    data.isValid = false;
+    data.validMessage = "未找包含合规 from 的结束语句";
+    return data;
+  }
+
   // 从结束位置向上再次查找import关键字，以防用户输入了 import 但是没有 from "xxx"
   const twoImportSearchLimit = Math.min(data.startLine, data.endLine - 20);
   for (let i = data.endLine; i >= twoImportSearchLimit; i--) {
@@ -284,7 +290,7 @@ export function findDestructuringPosition(
   if (equalIndex !== -1) {
     const leftPart = startLineText.substring(0, equalIndex);
     // 检查对象解构 {} 或数组解构 []
-    if ((leftPart.includes("{") && leftPart.includes("}")) || 
+    if ((leftPart.includes("{") && leftPart.includes("}")) ||
         (leftPart.includes("[") && leftPart.includes("]"))) {
       hasDestructuring = true;
     }
@@ -313,25 +319,25 @@ export function detectDestructuringBracketType(
   endLine: number
 ): BracketType | null {
   const document = editor.document;
-  
+
   for (let i = startLine; i <= endLine; i++) {
     const currentLineText = document.lineAt(i).text;
     const equalIndex = currentLineText.indexOf("=");
-    
+
     if (equalIndex !== -1) {
       const leftPart = currentLineText.substring(0, equalIndex);
-      
+
       // 检查是否有大括号（对象解构）
       if (leftPart.includes("{") && leftPart.includes("}")) {
         return "curly";
       }
-      
+
       // 检查是否有方括号（数组解构）
       if (leftPart.includes("[") && leftPart.includes("]")) {
         return "square";
       }
     }
   }
-  
+
   return null;
 }
