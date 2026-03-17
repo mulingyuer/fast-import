@@ -1,7 +1,8 @@
+// @ts-nocheck
 /*
  * @Author: mulingyuer
  * @Date: 2026-03-17 20:00:16
- * @LastEditTime: 2026-03-17 20:00:30
+ * @LastEditTime: 2026-03-17 22:51:12
  * @LastEditors: mulingyuer
  * @Description: 测试用例，演示用的
  * @FilePath: \fast-import\src\test\case-demo.ts
@@ -66,3 +67,14 @@ const {
 let { tempValue } = { tempValue: "test" };
 // 13. 用 var 解构，光标在下面这行，应该进入 { | }
 var { legacyVar } = { legacyVar: "old" };
+// 多声明 ALT+I 在 c 上 → 只 transform c
+const a = 1,
+  b = 2,
+  c = fetch();
+// destructure assign
+({ a } = foo);
+// function param
+function x({ a });
+// for-of
+for (const { a } of arr) {
+}
