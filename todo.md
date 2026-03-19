@@ -4,13 +4,11 @@
 2. `alt+i` 实现光标定位。
 3. `alt+o` 实现光标定位到对象解构句子的最末尾。
 4. 自动补 `{}` destructure：
-    - 当用户输入 `const res = await fetchData()`的时候，按下 `alt+i`，自动补全成 `const { } = await fetchData()`，并将光标定位到 `{}` 内部。至于是补`{}`还是`[]`，我们可以通过分析fetchData的返回值类型来判断，如果是对象就补`{}`，如果是数组就补`[]`。
-
+   - 当用户输入 `const res = await fetchData()`的时候，按下 `alt+i`，自动补全成 `const { } = await fetchData()`，并将光标定位到 `{}` 内部。至于是补`{}`还是`[]`，我们可以通过分析fetchData的返回值类型来判断，如果是对象就补`{}`，如果是数组就补`[]`。
 
 ## 技术路线
 
 1. 使用 VSCode TS Language Service 来解析用户的代码，获取 AST（抽象语法树）。
-
 
 ## 附加条件
 
