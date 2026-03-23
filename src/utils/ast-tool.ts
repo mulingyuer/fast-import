@@ -36,6 +36,14 @@ export interface DestructuringInfo {
 	type: "object" | "array";
 }
 
+/** 变量声明信息对象 */
+export interface VariableDeclarationInfo {
+	/** AST 节点对象 */
+	node: ts.VariableDeclaration;
+	/** 标识符 */
+	identifier: ts.Identifier;
+}
+
 export class AstTool {
 	/** 编辑器对象 */
 	private editor: vscode.TextEditor;
@@ -175,6 +183,94 @@ export class AstTool {
 		walk(this.sourceFile);
 
 		return result;
+	}
+
+	/** 获取当前光标所在的变量声明信息（简单标识符） */
+	public getVariableDeclarationInfo(): VariableDeclarationInfo | null {
+		const position = this.editor.selection.active;
+		const offset = this.document.offsetAt(position);
+
+		// 判断是不是注释
+		if (this.isPosInComment(position)) return null;
+
+		// 1. 找到光标位置的最小 AST 节点
+		const node = this.findNodeAtOffset(this.sourceFile, offset);
+		if (node) {
+			// 向上查找 VariableDeclaration
+			const varDecl = this.findParentNode(node, ts.isVariableDeclaration);
+			// 判断是不是简单标识符（不是解构赋值）
+			if (varDecl && ts.isIdentifier(varDecl.name)) {
+				return {
+					node: varDecl,
+					identifier: varDecl.name
+				};
+			}
+		}
+
+		// 2. 规则：只要光标在变量声明代码的行数内，都算是命中判断
+		const line = this.document.lineAt(position.line);
+		const lineStart = this.document.offsetAt(line.range.start);
+		const lineEnd = this.document.offsetAt(line.range.end);
+
+		let result: VariableDeclarationInfo | null = null;
+
+		const walk = (n: ts.Node) => {
+			if (result) return;
+
+			if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name)) {
+				const start = n.getStart();
+				const end = n.getEnd();
+
+				// 判断节点是否与当前行有交集
+				if (start <= lineEnd && end >= lineStart) {
+					result = {
+						node: n,
+						identifier: n.name
+					};
+					return;
+				}
+			}
+
+			n.forEachChild(walk);
+		};
+
+		walk(this.sourceFile);
+
+		return result;
+	}
+
+	/** 获取表达式的类型（对象还是数组） */
+	public async getTypeOfExpression(node: ts.Node): Promise<"object" | "array"> {
+		const start = node.getStart();
+		const position = this.document.positionAt(start);
+
+		// 调用 VS Code 的 Hover Provider
+		const hovers = await vscode.commands.executeCommand<vscode.Hover[]>(
+			"vscode.executeHoverProvider",
+			this.document.uri,
+			position
+		);
+
+		if (hovers && hovers.length > 0) {
+			for (const hover of hovers) {
+				for (const content of hover.contents) {
+					let text = "";
+					if (typeof content === "string") {
+						text = content;
+					} else if (content instanceof vscode.MarkdownString) {
+						text = content.value;
+					}
+
+					// 检查是否包含数组特征： [] 或 Array<
+					if (text.includes("[]") || text.includes("Array<")) {
+						return "array";
+					}
+				}
+			}
+		}
+
+		// 默认返回对象，因为对象更常见
+		return "object";
 	}
 
 	/** 根据偏移量查找最小的 AST 节点 */

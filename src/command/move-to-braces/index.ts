@@ -11,6 +11,7 @@ import * as vscode from "vscode";
 import { AstTool } from "../../utils/ast-tool";
 import { moveCursorToImport } from "./move-cursor-import";
 import { moveCursorToDestructuring } from "./move-cursor-destructuring";
+import { transformToDestructuring } from "./transform-to-destructuring";
 
 // export interface MoveToBracesOptions {}
 
@@ -37,7 +38,14 @@ export function createMoveToBracesCommand() {
 			return;
 		}
 
-		vscode.window.showInformationMessage("光标不在 import 或解构赋值语句范围内");
+		// 光标在简单变量声明上，尝试转换为解构赋值
+		const variableInfo = astTool.getVariableDeclarationInfo();
+		if (variableInfo) {
+			transformToDestructuring({ variableInfo, astTool, editor });
+			return;
+		}
+
+		vscode.window.showInformationMessage("光标不在 import、解构赋值或变量声明语句范围内");
 	});
 
 	return disposable;
