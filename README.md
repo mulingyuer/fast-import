@@ -1,77 +1,67 @@
-## 前言
+# Fast Import
 
-在日常的编码工作中，手动输入 `import` 语句和进行对象解构时，频繁地移动光标常常会打断我们的编程体验。为了解决这一痛点，我自己开发了 `fast-import`这个VS Code 插件，旨在通过简单的快捷键操作，极大地提升代码引入与解构的效率和流畅度。
+Fast Import 是一款专为提升开发效率量身打造的 VS Code 插件。它基于 TypeScript AST（抽象语法树）解析技术，通过智能的光标定位与自动化重构功能，极大地减少了在编写 `import` 语句和对象解构时的琐碎光标移动，让您的编码流程更加顺畅。
 
-## 痛点回顾与解决方案
+## 核心功能
 
-你是否曾因为以下场景而感到烦恼？
+### 1. 智能 Import 定位 (Alt + I)
 
-- **手动 `import`：** 输入 `import {} from "..."` 后，需要手动将光标移入 `{}` 中，再等待代码提示。
-- **对象解构：** 键入 `const {} = object;` 后，同样需要手动定位光标以输入解构属性。
+在编写 `import` 语句时，插件能够根据当前的语句结构智能判断光标的最佳落点，并自动触发代码补全提示。
 
-`fast-import` 插件正是为解决这些重复且繁琐的操作而生。它能够智能判断当前上下文，并通过统一的快捷键，将光标准确地定位到你需要输入的位置，并自动触发代码提示，让你专注于代码逻辑，不再为光标移动而分心。
+- **默认导入**：光标自动定位至导入名称末尾。例如：`import moduleName| from "module"`。
+- **具名导入**：光标精准跳转至 `{}` 内部。例如：`import { | } from "module"`。
+- **混合导入**：同时存在默认与具名导入时，光标定位至 `{}` 内部。例如：`import defaultVal, { | } from "module"`。
+- **无导入值**：当仅输入 `import from "module"` 时，按下快捷键将自动补全必要的空格并定位光标。
+
+插件全面支持多行 `import` 语句，无论光标位于该语句的何处，均能准确识别。
+
+### 2. 解构赋值定位 (Alt + I)
+
+在进行对象或数组解构时，Fast Import 能够快速定位光标至解构括号内部。
+
+- **对象解构**：`const { | } = object`。
+- **数组解构**：`const [ | ] = array`。
+- **嵌套解构**：支持复杂嵌套结构的解析，光标始终定位在最相关的输入位置。
+- **跨行支持**：完美支持跨多行的解构声明。
+
+### 3. 变量声明自动转换为解构 (Alt + I)
+
+这是 Fast Import 的一项进阶功能。当您在普通的变量声明语句上按下 `Alt + I` 时，插件会尝试将其重构为解构赋值形式。
+
+- **自动识别**：插件通过分析右侧表达式的类型（基于 TypeScript 语言服务），智能判断应补全 `{}` 还是 `[]`。
+- **代码重构**：例如将 `const res = await fetchData()` 快速转换为 `const { | } = await fetchData()`，并自动将光标移入解构块中。
+
+### 4. 快速跳出语句 (Alt + O)
+
+当您完成解构或导入输入后，无需通过方向键繁琐移动，只需按下 `Alt + O`，光标即可瞬间跳转至当前语句的最末尾，直接开始下一行的编写。
+
+## 键盘快捷键
+
+| 功能 | 快捷键 | 备注 |
+| :--- | :--- | :--- |
+| **智能定位 / 转换** | `Alt + I` | 核心功能，支持 Import、解构及自动转换 |
+| **跳出当前语句** | `Alt + O` | 将光标移至语句行尾 |
+
+## 配置项
+
+您可以在 VS Code 的设置中对插件行为进行自定义：
+
+- `fast-import.enableMoveToBraces`: 是否启用 `Alt + I` 快速定位功能（默认：启用）。
+- `fast-import.enableOutToBraces`: 是否启用 `Alt + O` 快速跳出功能（默认：启用）。
+
+## 技术特性
+
+- **AST 解析**：采用 TypeScript AST 解析替代简单的正则匹配，极大地提升了在复杂代码场景下的识别准确率。
+- **多语言支持**：完美适配 TypeScript 及 JavaScript 环境。
 
 ## 轻松安装
 
-安装 `fast-import` 插件非常简单，只需几步即可完成：
+1. **通过 VS Code 扩展市场**：在 VS Code 中，打开扩展市场，搜索 `fast-import` 并点击安装。
+2. **直接访问VS Code 官方插件市场**：前往 [fast-import 插件页面](https://marketplace.visualstudio.com/items?itemName=mulingyuer.fast-import) 进行安装。
+3. **通过 Open VSX 插件市场**：前往 [fast-import 插件页面](https://open-vsx.org/extension/mulingyuer/fast-import) 进行安装。
 
-1. **通过 VS Code 扩展市场：** 在 VS Code 中，打开扩展市场，搜索 `fast-import` 并点击安装。
-2. **直接访问插件市场：** 前往 [fast-import 插件页面](https://marketplace.visualstudio.com/items?itemName=mulingyuer.fast-import) 进行安装。
+## 相关资源
 
-安装成功后，你将立即体验到开发效率的显著提升！
-
-![安装插件](https://github.com/mulingyuer/fast-import/raw/HEAD/docs/images/安装插件01.png)
-
-## 如何使用 `fast-import`
-
-`fast-import` 的核心优势在于其智能和统一的快捷键操作。
-
-### 1. `import` 快速引入
-
-当你需要引入模块时，`fast-import` 能自动帮你完成光标定位和提示触发。
-
-**场景一：具名导出引入**
-
-```javascript
-import {} from "module-name";
-```
-
-无论你的光标位于 `import` 语句的任何位置（甚至支持换行后的语句），例如 `import` 关键词之前或 `from` 关键词之后，只需按下快捷键 `alt+i`，光标便会自动瞬移至 `{}` 内部，并立即展示可导入的成员列表。
-
-**场景二：默认导出引入**
-
-```javascript
-import  from "module-name";
-```
-
-对于默认导出，将光标置于该 `import` 语句的任意位置，按下 `alt+i`，光标会自动定位到 `import` 关键字之后，方便你直接输入默认导出模块的名称。
-
-![import 快速引入](https://github.com/mulingyuer/fast-import/raw/HEAD/docs/images/import快速引入.gif)
-
-### 2. 解构快速引入
-
-在进行对象或数组解构时，`fast-import` 同样能为你节省大量时间。
-
-```javascript
-const {} = { age: 18, name: "Alice" };
-
-const [] = [1, 2, 3];
-```
-
-将光标放置在解构语句的任意位置（例如 `const` 之前，或被解构对象内部），按下快捷键 `alt+i`，光标将精准移动到 `{}` 或者 `[]` 内部，并自动弹出可解构的属性提示。
-
-`fast-import` 全面支持 `const`、`let`、`var` 三种声明方式，无论是解构函数返回值、普通对象还是数组，都能完美应对。
-
-![解构快速引入](https://github.com/mulingyuer/fast-import/raw/HEAD/docs/images/解构快速引入.gif)
-
-## 快捷键
-
-- `Alt+I` - 智能快速定位（同时支持 `import` 引入和解构赋值）
-
-## 🔗 相关资源
-
-以下是一些可能对开发者有用的相关资源：
-
-1. VS Code 内置图标库：[codicon](https://microsoft.github.io/vscode-codicons/dist/codicon.html)
-2. VS Code 插件发布管理：[manage](https://marketplace.visualstudio.com/manage)
-3. Open VSX 插件发布平台：[open-vsx](https://open-vsx.org/user-settings/extensions)
+1. [VS Code 内置图标库](https://microsoft.github.io/vscode-codicons/dist/codicon.html)
+2. [VS Code 插件发布管理](https://marketplace.visualstudio.com/manage)
+3. [Open VSX 插件发布平台](https://open-vsx.org/user-settings/extensions)

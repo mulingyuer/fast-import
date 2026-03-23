@@ -1,178 +1,133 @@
 import * as assert from "assert";
-
-// You can import and use all API from the 'vscode' module
-// as well as import your extension to test it
 import * as vscode from "vscode";
-import { findDestructuringPosition, findImportPosition, findBracePosition } from "../utils";
+import * as path from "path";
 
 suite("Extension Test Suite", () => {
 	vscode.window.showInformationMessage("Start all tests.");
 
-	test("Sample test", () => {
-		assert.strictEqual(-1, [1, 2, 3].indexOf(5));
-		assert.strictEqual(-1, [1, 2, 3].indexOf(0));
-	});
-
-	test("findDestructuringPosition should find const destructuring", async () => {
-		// 创建一个临时文档来测试
+	// 辅助函数：创建一个临时文件并打开编辑器
+	async function createTestEditor(content: string, language: string = "typescript") {
 		const document = await vscode.workspace.openTextDocument({
-			content: "const { name, age } = person;",
-			language: "javascript"
+			content,
+			language
 		});
+		return await vscode.window.showTextDocument(document);
+	}
 
-		const editor = await vscode.window.showTextDocument(document);
+	// 辅助函数：等待一段时间，确保命令执行完成（如果涉及异步操作）
+	async function sleep(ms: number) {
+		return new Promise((resolve) => setTimeout(resolve, ms));
+	}
 
-		// 将光标设置在第一行
+	test("Command: moveToBraces - Basic Import", async () => {
+		const content = "import { Component } from 'vue';";
+		const editor = await createTestEditor(content);
+
+		// 将光标设置在行首
 		editor.selection = new vscode.Selection(0, 0, 0, 0);
 
-		const result = findDestructuringPosition(editor);
+		// 执行命令
+		await vscode.commands.executeCommand("fast-import.moveToBraces");
 
-		assert.strictEqual(result.isValid, true);
-		assert.strictEqual(result.keyword.type, "const");
-		assert.strictEqual(result.keyword.line, 0);
+		// 验证光标位置：应该在 { 之后，或者在 } 之前（取决于实现逻辑，通常是定位到内部）
+		// 根据插件逻辑，它会定位到 } 之前
+		const position = editor.selection.active;
+		assert.strictEqual(position.line, 0);
+		assert.strictEqual(position.character, 18); // "import { Component " 之后是 }
 	});
 
-	test("findDestructuringPosition should find let destructuring", async () => {
-		const document = await vscode.workspace.openTextDocument({
-			content: "let { x, y } = coordinates;",
-			language: "javascript"
-		});
+	test("Command: moveToBraces - Destructuring Assignment", async () => {
+		const content = "const { name, age } = person;";
+		const editor = await createTestEditor(content);
 
-		const editor = await vscode.window.showTextDocument(document);
 		editor.selection = new vscode.Selection(0, 0, 0, 0);
+		await vscode.commands.executeCommand("fast-import.moveToBraces");
 
-		const result = findDestructuringPosition(editor);
-
-		assert.strictEqual(result.isValid, true);
-		assert.strictEqual(result.keyword.type, "let");
-		assert.strictEqual(result.keyword.line, 0);
+		const position = editor.selection.active;
+		assert.strictEqual(position.line, 0);
+		assert.strictEqual(position.character, 19); // "const { name, age " 之后是 }
 	});
 
-	test("findDestructuringPosition should find var destructuring", async () => {
-		const document = await vscode.workspace.openTextDocument({
-			content: "var { a, b } = obj;",
-			language: "javascript"
-		});
+	test("Command: moveToBraces - Multi-line Import", async () => {
+		const content = `import {
+    computed,
+    watch,
+    onMounted
+} from 'vue';`;
+		const editor = await createTestEditor(content);
 
-		const editor = await vscode.window.showTextDocument(document);
+		// 光标在第一行
 		editor.selection = new vscode.Selection(0, 0, 0, 0);
+		await vscode.commands.executeCommand("fast-import.moveToBraces");
 
-		const result = findDestructuringPosition(editor);
-
-		assert.strictEqual(result.isValid, true);
-		assert.strictEqual(result.keyword.type, "var");
-		assert.strictEqual(result.keyword.line, 0);
+		const position = editor.selection.active;
+		assert.strictEqual(position.line, 4); // 最后一行
+		assert.strictEqual(position.character, 0); // } 之前
 	});
 
-	test("findDestructuringPosition should return invalid for non-destructuring", async () => {
-		const document = await vscode.workspace.openTextDocument({
-			content: "const name = person.name;",
-			language: "javascript"
-		});
+	test("Command: outToBraces - From inside braces", async () => {
+		const content = "const { name } = person;";
+		const editor = await createTestEditor(content);
 
-		const editor = await vscode.window.showTextDocument(document);
+		// 将光标设置在 { name | }
+		editor.selection = new vscode.Selection(0, 10, 0, 10);
+
+		await vscode.commands.executeCommand("fast-import.outToBraces");
+
+		// 验证光标位置：应该在语句末尾
+		const position = editor.selection.active;
+		assert.strictEqual(position.line, 0);
+		assert.strictEqual(position.character, content.length);
+	});
+
+	test("Command: outToBraces - Multi-line statement", async () => {
+		const content = `const {
+    name,
+    age
+} = person;`;
+		const editor = await createTestEditor(content);
+
+		// 光标在中间某行
+		editor.selection = new vscode.Selection(1, 4, 1, 4);
+
+		await vscode.commands.executeCommand("fast-import.outToBraces");
+
+		// 验证光标位置：应该在最后一行末尾
+		const position = editor.selection.active;
+		assert.strictEqual(position.line, 3);
+		assert.strictEqual(position.character, 11); // "} = person;" 的长度
+	});
+
+	test("Configuration: fast-import.enableMoveToBraces", async () => {
+		const config = vscode.workspace.getConfiguration("fast-import");
+		await config.update("enableMoveToBraces", false, vscode.ConfigurationTarget.Global);
+
+		try {
+			const content = "import { Test } from 'test';";
+			const editor = await createTestEditor(content);
+			editor.selection = new vscode.Selection(0, 0, 0, 0);
+
+			await vscode.commands.executeCommand("fast-import.moveToBraces");
+
+			// 由于禁用了，光标不应该移动
+			const position = editor.selection.active;
+			assert.strictEqual(position.character, 0);
+		} finally {
+			// 恢复配置
+			await config.update("enableMoveToBraces", true, vscode.ConfigurationTarget.Global);
+		}
+	});
+
+	test("Command: moveToBraces - Nested Destructuring", async () => {
+		const content = "const { data: { list, total } } = res;";
+		const editor = await createTestEditor(content);
+
 		editor.selection = new vscode.Selection(0, 0, 0, 0);
+		await vscode.commands.executeCommand("fast-import.moveToBraces");
 
-		const result = findDestructuringPosition(editor);
-
-		assert.strictEqual(result.isValid, false);
-		assert.strictEqual(result.validMessage, "未找到解构赋值语法（等号左边的大括号）");
-	});
-
-	test("findDestructuringPosition should handle object literal on right side", async () => {
-		const document = await vscode.workspace.openTextDocument({
-			content: 'const { name } = { name: "test", age: 25 };',
-			language: "javascript"
-		});
-
-		const editor = await vscode.window.showTextDocument(document);
-		editor.selection = new vscode.Selection(0, 0, 0, 0);
-
-		const result = findDestructuringPosition(editor);
-
-		assert.strictEqual(result.isValid, true);
-		assert.strictEqual(result.keyword.type, "const");
-		assert.strictEqual(result.keyword.line, 0);
-	});
-
-	test("findBracePosition with destructuring type should only find braces on left side of equals", async () => {
-		const document = await vscode.workspace.openTextDocument({
-			content: 'const { name } = { name: "test", age: 25 };',
-			language: "javascript"
-		});
-
-		const editor = await vscode.window.showTextDocument(document);
-
-		const result = findBracePosition({
-			editor: editor,
-			startLine: 0,
-			endLine: 0,
-			type: "destructuring"
-		});
-
-		assert.strictEqual(result.isWithBrace, true);
-		assert.strictEqual(result.startBraceIndex, 6); // 位置应该是 "const " 后面的 {
-		assert.strictEqual(result.endBraceIndex, 12); // 位置应该是 name 后面的 }
-	});
-
-	test("findBracePosition with import type should find all braces", async () => {
-		const document = await vscode.workspace.openTextDocument({
-			content: 'import { Component } from "vue";',
-			language: "javascript"
-		});
-
-		const editor = await vscode.window.showTextDocument(document);
-
-		const result = findBracePosition({
-			editor: editor,
-			startLine: 0,
-			endLine: 0,
-			type: "import"
-		});
-
-		assert.strictEqual(result.isWithBrace, true);
-		assert.strictEqual(result.startBraceIndex, 7); // 位置应该是 "import " 后面的 {
-		assert.strictEqual(result.endBraceIndex, 18); // 位置应该是 Component 后面的 }
-	});
-
-	test("Smart detection should prioritize import over destructuring", async () => {
-		// 测试智能识别：import优先级高于解构赋值
-		const document = await vscode.workspace.openTextDocument({
-			content: `import { Component } from 'vue';
-const { name } = person;`,
-			language: "javascript"
-		});
-
-		const editor = await vscode.window.showTextDocument(document);
-
-		// 将光标设置在第一行（import行）
-		editor.selection = new vscode.Selection(0, 0, 0, 0);
-
-		const importResult = findImportPosition(editor);
-		const destructuringResult = findDestructuringPosition(editor);
-
-		// import应该被找到
-		assert.strictEqual(importResult.isValid, true);
-		// 解构赋值也应该被找到，但在统一命令中import会优先处理
-		assert.strictEqual(destructuringResult.isValid, true);
-	});
-
-	test("Smart detection should fallback to destructuring when no import found", async () => {
-		// 测试智能识别：没有import时应该查找解构赋值
-		const document = await vscode.workspace.openTextDocument({
-			content: "const { name, age } = person;",
-			language: "javascript"
-		});
-
-		const editor = await vscode.window.showTextDocument(document);
-		editor.selection = new vscode.Selection(0, 0, 0, 0);
-
-		const importResult = findImportPosition(editor);
-		const destructuringResult = findDestructuringPosition(editor);
-
-		// import不应该被找到
-		assert.strictEqual(importResult.isValid, false);
-		// 解构赋值应该被找到
-		assert.strictEqual(destructuringResult.isValid, true);
+		// 应该定位到最外层的 } 之前
+		const position = editor.selection.active;
+		assert.strictEqual(position.line, 0);
+		assert.strictEqual(position.character, 31); // "const { data: { list, total } " 之后是 }
 	});
 });
