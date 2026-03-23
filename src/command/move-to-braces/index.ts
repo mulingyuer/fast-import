@@ -1,7 +1,7 @@
 /*
  * @Author: mulingyuer
  * @Date: 2026-03-19 19:52:34
- * @LastEditTime: 2026-03-19 22:44:45
+ * @LastEditTime: 2026-03-23 19:24:50
  * @LastEditors: mulingyuer
  * @Description: 移动光标的快捷键
  * @FilePath: \fast-import\src\command\move-to-braces\index.ts
@@ -10,6 +10,7 @@
 import * as vscode from "vscode";
 import { AstTool } from "../../utils/ast-tool";
 import { moveCursorToImport } from "./move-cursor-import";
+import { moveCursorToDestructuring } from "./move-cursor-destructuring";
 
 // export interface MoveToBracesOptions {}
 
@@ -21,15 +22,22 @@ export function createMoveToBracesCommand() {
 		}
 
 		const astTool = new AstTool({ editor });
-		const importInfo = astTool.getImportInfo();
 
 		// 存在import
+		const importInfo = astTool.getImportInfo();
 		if (importInfo) {
 			moveCursorToImport({ importInfo, editor });
 			return;
 		}
 
-		vscode.window.showInformationMessage("光标不在 import 语句范围内");
+		// 光标在解构赋值的范围内
+		const destructuringInfo = astTool.getDestructuringInfo();
+		if (destructuringInfo) {
+			moveCursorToDestructuring({ destructuringInfo, editor });
+			return;
+		}
+
+		vscode.window.showInformationMessage("光标不在 import 或解构赋值语句范围内");
 	});
 
 	return disposable;

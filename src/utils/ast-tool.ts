@@ -1,7 +1,7 @@
 /*
  * @Author: mulingyuer
  * @Date: 2026-03-19 21:10:45
- * @LastEditTime: 2026-03-19 23:07:29
+ * @LastEditTime: 2026-03-23 19:24:48
  * @LastEditors: mulingyuer
  * @Description: AST 工具
  * @FilePath: \fast-import\src\utils\ast-tool.ts
@@ -26,6 +26,14 @@ export interface ImportInfo {
 	lineIndex?: number;
 	/** 信息类型 */
 	type: "ast" | "regex";
+}
+
+/** 解构信息对象 */
+export interface DestructuringInfo {
+	/** AST 节点对象 */
+	node: ts.BindingPattern;
+	/** 信息类型 */
+	type: "object" | "array";
 }
 
 export class AstTool {
@@ -69,7 +77,6 @@ export class AstTool {
 		// 如果 AST 成功找到 import 语句，直接返回相关信息
 		if (findImportNode) return { node: findImportNode, type: "ast" };
 
-		console.error("AST 没有找到 import 语句，尝试使用文本+正则方式查找", 123211312);
 		// 3. 兼容不完整的 import 语句，例如：import from "xxx"; 通过文本+正则判断
 		let currentLine = position.line;
 		const maxLookBack = Math.max(0, currentLine - 30); // 最多向上查找30行，避免性能问题
@@ -112,6 +119,62 @@ export class AstTool {
 		}
 
 		return null;
+	}
+
+	/** 获取当前光标所在或关联的解构赋值信息 */
+	public getDestructuringInfo(): DestructuringInfo | null {
+		const position = this.editor.selection.active;
+		const offset = this.document.offsetAt(position);
+
+		// 判断是不是注释
+		if (this.isPosInComment(position)) return null;
+
+		// 1. 尝试直接寻找光标下的节点
+		const node = this.findNodeAtOffset(this.sourceFile, offset);
+		if (node) {
+			const bindingPattern = this.findParentNode(
+				node,
+				(n): n is ts.BindingPattern => ts.isObjectBindingPattern(n) || ts.isArrayBindingPattern(n)
+			);
+			if (bindingPattern) {
+				return {
+					node: bindingPattern,
+					type: ts.isObjectBindingPattern(bindingPattern) ? "object" : "array"
+				};
+			}
+		}
+
+		// 2. 规则：只要光标在解构代码的行数内，都算是命中判断
+		// 我们可以遍历 AST，寻找所有在当前行范围内的 BindingPattern
+		const line = this.document.lineAt(position.line);
+		const lineStart = this.document.offsetAt(line.range.start);
+		const lineEnd = this.document.offsetAt(line.range.end);
+
+		let result: DestructuringInfo | null = null;
+
+		const walk = (n: ts.Node) => {
+			if (result) return;
+
+			if (ts.isObjectBindingPattern(n) || ts.isArrayBindingPattern(n)) {
+				const start = n.getStart();
+				const end = n.getEnd();
+
+				// 判断节点是否与当前行有交集
+				if (start <= lineEnd && end >= lineStart) {
+					result = {
+						node: n,
+						type: ts.isObjectBindingPattern(n) ? "object" : "array"
+					};
+					return;
+				}
+			}
+
+			n.forEachChild(walk);
+		};
+
+		walk(this.sourceFile);
+
+		return result;
 	}
 
 	/** 根据偏移量查找最小的 AST 节点 */
