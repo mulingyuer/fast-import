@@ -46,6 +46,21 @@
 		"webpack-cli": "^7.0.2"
 	},
 	"contributes": {
+		"configuration": {
+			"title": "fast-import 配置项",
+			"properties": {
+				"fast-import.enableMoveToBraces": {
+					"type": "boolean",
+					"default": true,
+					"description": "启用快速定位 ALI + I (Import/解构赋值)"
+				},
+				"fast-import.enableOutToBraces": {
+					"type": "boolean",
+					"default": true,
+					"description": "启用快速退出 ALI + O (Import/解构赋值)"
+				}
+			}
+		},
 		"commands": [
 			{
 				"command": "fast-import.moveToBraces",
@@ -61,13 +76,13 @@
 				"command": "fast-import.moveToBraces",
 				"key": "alt+i",
 				"mac": "alt+i",
-				"when": "editorTextFocus"
+				"when": "editorTextFocus && config.fast-import.enableMoveToBraces"
 			},
 			{
 				"command": "fast-import.outToBraces",
 				"key": "alt+o",
 				"mac": "alt+o",
-				"when": "editorTextFocus"
+				"when": "editorTextFocus && config.fast-import.enableOutToBraces"
 			}
 		]
 	},
