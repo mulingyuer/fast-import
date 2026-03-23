@@ -34,6 +34,8 @@ export interface DestructuringInfo {
 	node: ts.BindingPattern;
 	/** 信息类型 */
 	type: "object" | "array";
+	/** 父级声明（变量声明或参数） */
+	parentDeclaration?: ts.VariableDeclaration | ts.ParameterDeclaration;
 }
 
 /** 变量声明信息对象 */
@@ -145,9 +147,15 @@ export class AstTool {
 				(n): n is ts.BindingPattern => ts.isObjectBindingPattern(n) || ts.isArrayBindingPattern(n)
 			);
 			if (bindingPattern) {
+				const parentDeclaration = this.findParentNode(
+					bindingPattern,
+					(n): n is ts.VariableDeclaration | ts.ParameterDeclaration =>
+						ts.isVariableDeclaration(n) || ts.isParameter(n)
+				);
 				return {
 					node: bindingPattern,
-					type: ts.isObjectBindingPattern(bindingPattern) ? "object" : "array"
+					type: ts.isObjectBindingPattern(bindingPattern) ? "object" : "array",
+					parentDeclaration
 				};
 			}
 		}
@@ -170,9 +178,15 @@ export class AstTool {
 
 				// 判断节点是否与当前行有交集
 				if (start <= lineEnd && end >= lineStart) {
+					const parentDeclaration = this.findParentNode(
+						n,
+						(pn): pn is ts.VariableDeclaration | ts.ParameterDeclaration =>
+							ts.isVariableDeclaration(pn) || ts.isParameter(pn)
+					);
 					result = {
 						node: n,
-						type: ts.isObjectBindingPattern(n) ? "object" : "array"
+						type: ts.isObjectBindingPattern(n) ? "object" : "array",
+						parentDeclaration
 					};
 					return;
 				}
@@ -188,7 +202,8 @@ export class AstTool {
 					if (start <= lineEnd && end >= lineStart) {
 						result = {
 							node: n.name,
-							type: ts.isObjectBindingPattern(n.name) ? "object" : "array"
+							type: ts.isObjectBindingPattern(n.name) ? "object" : "array",
+							parentDeclaration: n
 						};
 						return;
 					}
@@ -257,6 +272,21 @@ export class AstTool {
 		return result;
 	}
 
+	/** 获取当前光标所在的语句 */
+	public getStatementAtCursor(): ts.Statement | undefined {
+		const position = this.editor.selection.active;
+		const offset = this.document.offsetAt(position);
+
+		// 判断是不是注释
+		if (this.isPosInComment(position)) return undefined;
+
+		const node = this.findNodeAtOffset(this.sourceFile, offset);
+		if (node) {
+			return this.findParentNode(node, (n): n is ts.Statement => ts.isStatement(n) && !ts.isSourceFile(n));
+		}
+		return undefined;
+	}
+
 	/** 获取表达式的类型（对象还是数组） */
 	public async getTypeOfExpression(node: ts.Node): Promise<"object" | "array"> {
 		const start = node.getStart();
@@ -292,7 +322,7 @@ export class AstTool {
 	}
 
 	/** 根据偏移量查找最小的 AST 节点 */
-	private findNodeAtOffset(node: ts.Node, offset: number): ts.Node | undefined {
+	public findNodeAtOffset(node: ts.Node, offset: number): ts.Node | undefined {
 		if (offset < node.getStart() || offset > node.getEnd()) {
 			return undefined;
 		}
@@ -309,7 +339,7 @@ export class AstTool {
 	}
 
 	/** 向上查找符合条件的父节点 */
-	private findParentNode<T extends ts.Node>(
+	public findParentNode<T extends ts.Node>(
 		node: ts.Node,
 		predicate: (node: ts.Node) => node is T
 	): T | undefined {
