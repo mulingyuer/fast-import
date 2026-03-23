@@ -1,72 +1,103 @@
 {
-  "name": "fast-import",
-  "displayName": "fast-import",
-  "description": "fast-import extension",
-  "publisher": "mulingyuer",
-  "version": "0.0.4",
-  "engines": {
-    "vscode": "^1.102.0"
-  },
-  "license": "SEE LICENSE IN LICENSE",
-  "icon": "public/icon.png",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/mulingyuer/fast-import"
-  },
-  "bugs": {
-    "url": "https://github.com/mulingyuer/fast-import/issues"
-  },
-  "categories": [
-    "Other"
-  ],
-  "galleryBanner": {
-    "color": "#3e3838",
-    "theme": "dark"
-  },
-  "activationEvents": [
-    "onLanguage"
-  ],
-  "main": "./dist/extension.js",
-  "contributes": {
-    "commands": [
-      {
-        "command": "fast-import.moveToBraces",
-        "title": "快速定位 (Import/解构赋值)"
-      }
-    ],
-    "keybindings": [
-      {
-        "command": "fast-import.moveToBraces",
-        "key": "alt+i",
-        "mac": "alt+i",
-        "when": "editorTextFocus"
-      }
-    ]
-  },
-  "scripts": {
-    "vscode:prepublish": "npm run package",
-    "compile": "webpack",
-    "watch": "webpack --watch",
-    "package": "webpack --mode production --devtool hidden-source-map",
-    "compile-tests": "tsc -p . --outDir out",
-    "watch-tests": "tsc -p . -w --outDir out",
-    "build": "vsce package",
-    "pretest": "npm run compile-tests && npm run compile && npm run lint",
-    "lint": "eslint src",
-    "test": "vscode-test"
-  },
-  "devDependencies": {
-    "@types/vscode": "^1.102.0",
-    "@types/mocha": "^10.0.10",
-    "@types/node": "20.x",
-    "@typescript-eslint/eslint-plugin": "^8.31.1",
-    "@typescript-eslint/parser": "^8.31.1",
-    "eslint": "^9.25.1",
-    "typescript": "^5.8.3",
-    "ts-loader": "^9.5.2",
-    "webpack": "^5.99.7",
-    "webpack-cli": "^6.0.1",
-    "@vscode/test-cli": "^0.0.11",
-    "@vscode/test-electron": "^2.5.2"
-  }
+	"name": "fast-import",
+	"displayName": "fast-import",
+	"version": "0.0.5",
+	"description": "fast-import extension",
+	"categories": [
+		"Other"
+	],
+	"bugs": {
+		"url": "https://github.com/mulingyuer/fast-import/issues"
+	},
+	"license": "SEE LICENSE IN LICENSE",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/mulingyuer/fast-import"
+	},
+	"publisher": "mulingyuer",
+	"main": "./dist/extension.js",
+	"scripts": {
+		"vscode:prepublish": "npm run package",
+		"compile": "webpack",
+		"watch": "webpack --watch",
+		"package": "webpack --mode production --devtool hidden-source-map",
+		"compile-tests": "tsc -p . --outDir out",
+		"watch-tests": "tsc -p . -w --outDir out",
+		"build": "vsce package",
+		"pretest": "npm run compile-tests && npm run compile && npm run lint",
+		"lint": "eslint src",
+		"fmt": "oxfmt",
+		"fmt:check": "oxfmt --check",
+		"test": "vscode-test"
+	},
+	"devDependencies": {
+		"@types/glob": "^8.1.0",
+		"@types/mocha": "^10.0.10",
+		"@types/node": "20.19.37",
+		"@types/vscode": "^1.75.0",
+		"@typescript-eslint/eslint-plugin": "^8.57.1",
+		"@typescript-eslint/parser": "^8.57.1",
+		"@vscode/test-cli": "^0.0.11",
+		"@vscode/test-electron": "^2.5.2",
+		"eslint": "^9.39.4",
+		"glob": "^13.0.6",
+		"mocha": "^11.3.0",
+		"oxfmt": "^0.41.0",
+		"ts-loader": "^9.5.4",
+		"typescript": "^5.9.3",
+		"webpack": "^5.105.4",
+		"webpack-cli": "^7.0.2"
+	},
+	"contributes": {
+		"configuration": {
+			"title": "fast-import 配置项",
+			"properties": {
+				"fast-import.enableMoveToBraces": {
+					"type": "boolean",
+					"default": true,
+					"description": "启用快速定位 ALI + I (Import/解构赋值)"
+				},
+				"fast-import.enableOutToBraces": {
+					"type": "boolean",
+					"default": true,
+					"description": "启用快速退出 ALI + O (Import/解构赋值)"
+				}
+			}
+		},
+		"commands": [
+			{
+				"command": "fast-import.moveToBraces",
+				"title": "快速定位 (Import/解构赋值)"
+			},
+			{
+				"command": "fast-import.outToBraces",
+				"title": "快速退出 (Import/解构赋值)"
+			}
+		],
+		"keybindings": [
+			{
+				"command": "fast-import.moveToBraces",
+				"key": "alt+i",
+				"mac": "alt+i",
+				"when": "editorTextFocus && config.fast-import.enableMoveToBraces"
+			},
+			{
+				"command": "fast-import.outToBraces",
+				"key": "alt+o",
+				"mac": "alt+o",
+				"when": "editorTextFocus && config.fast-import.enableOutToBraces"
+			}
+		]
+	},
+	"activationEvents": [
+		"onLanguage"
+	],
+	"icon": "public/icon.png",
+	"galleryBanner": {
+		"color": "#3e3838",
+		"theme": "dark"
+	},
+	"engines": {
+		"vscode": "^1.75.0"
+	}
 }
