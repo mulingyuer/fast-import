@@ -163,6 +163,7 @@ export class AstTool {
 		const walk = (n: ts.Node) => {
 			if (result) return;
 
+			// 1. 直接是解构模式
 			if (ts.isObjectBindingPattern(n) || ts.isArrayBindingPattern(n)) {
 				const start = n.getStart();
 				const end = n.getEnd();
@@ -174,6 +175,23 @@ export class AstTool {
 						type: ts.isObjectBindingPattern(n) ? "object" : "array"
 					};
 					return;
+				}
+			}
+
+			// 2. 变量声明或参数，其名称是解构模式 (兼容多行)
+			if (ts.isVariableDeclaration(n) || ts.isParameter(n)) {
+				if (ts.isObjectBindingPattern(n.name) || ts.isArrayBindingPattern(n.name)) {
+					const start = n.getStart();
+					const end = n.getEnd();
+
+					// 判断节点是否与当前行有交集
+					if (start <= lineEnd && end >= lineStart) {
+						result = {
+							node: n.name,
+							type: ts.isObjectBindingPattern(n.name) ? "object" : "array"
+						};
+						return;
+					}
 				}
 			}
 
