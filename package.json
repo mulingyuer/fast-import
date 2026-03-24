@@ -1,7 +1,7 @@
 {
 	"name": "fast-import",
 	"displayName": "fast-import",
-	"version": "0.0.6",
+	"version": "0.0.7",
 	"description": "fast-import extension",
 	"categories": [
 		"Other"
@@ -55,12 +55,12 @@
 				"fast-import.enableMoveToBraces": {
 					"type": "boolean",
 					"default": true,
-					"description": "启用快速定位 ALI + I (Import/解构赋值)"
+					"description": "启用快速定位 Alt + I (Import/解构赋值)"
 				},
 				"fast-import.enableOutToBraces": {
 					"type": "boolean",
 					"default": true,
-					"description": "启用快速退出 ALI + O (Import/解构赋值)"
+					"description": "启用快速退出 Alt + O (Import/解构赋值)"
 				}
 			}
 		},
