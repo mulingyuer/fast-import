@@ -1,7 +1,7 @@
 /*
  * @Author: mulingyuer
  * @Date: 2026-03-19 22:02:45
- * @LastEditTime: 2026-03-19 22:44:15
+ * @LastEditTime: 2026-03-24 20:58:09
  * @LastEditors: mulingyuer
  * @Description: 移动光标到 import 语句
  * @FilePath: \fast-import\src\command\move-to-braces\move-cursor-import.ts
@@ -75,10 +75,19 @@ export async function moveCursorToImport(options: MoveCursorToImportOptions) {
 			// 光标定位在两个空格中间：import [光标] from
 			targetPosition = insertPos;
 		} else {
-			// 极端情况：只有 import
+			// 极端情况：只有 import，在其后插入一个空格，光标定位到空格右侧
+			// 结果：import [光标]
 			const importIdx = lineText.indexOf("import");
 			if (importIdx !== -1) {
-				targetPosition = new vscode.Position(lineIndex, importIdx + 6);
+				const insertPos = new vscode.Position(lineIndex, importIdx + 6);
+				await editor.edit(
+					(editBuilder) => {
+						editBuilder.insert(insertPos, " ");
+					},
+					{ undoStopBefore: true, undoStopAfter: false }
+				);
+				// importIdx + 7：跳过 import(6) + 插入的空格(1)，光标在空格右侧
+				targetPosition = new vscode.Position(lineIndex, importIdx + 7);
 			}
 		}
 	}

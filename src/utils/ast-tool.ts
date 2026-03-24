@@ -78,18 +78,40 @@ export class AstTool {
 		// 判断是不是注释
 		if (this.isPosInComment(position)) return null;
 
-		// 1. 找到光标位置的最小 AST 节点
-		const node = this.findNodeAtOffset(this.sourceFile, offset);
-
-		// 2. 通过AST语法树判断是否在import语句范围内
+		// 1. 精确查找：找到光标位置的最小 AST 节点，向上找 ImportDeclaration
+		const node = this.findNodeAtOffset(this.sourceFile, offset) ?? this.findNodeAtOffset(this.sourceFile, Math.max(0, offset - 1));
 		const findImportNode = node ? this.findParentNode(node, ts.isImportDeclaration) : void 0;
 
-		// 如果 AST 成功找到 import 语句，直接返回相关信息
+		// 如果 AST 精确命中，直接返回
 		if (findImportNode) return { node: findImportNode, type: "ast" };
 
+		// 2. 行范围扫描：只要光标在 import 语句所在的行内，就算命中
+		// （处理光标在分号之后、行末空格等超出节点 getEnd() 的情况）
+		const curLine = position.line;
+		const lineStart = this.document.offsetAt(this.document.lineAt(curLine).range.start);
+		const lineEnd = this.document.offsetAt(this.document.lineAt(curLine).range.end);
+
+		let foundByLine: ts.ImportDeclaration | undefined;
+		const walkForImport = (n: ts.Node) => {
+			if (foundByLine) return;
+			if (ts.isImportDeclaration(n)) {
+				// 节点与当前行有交集
+				if (n.getStart() <= lineEnd && n.getEnd() >= lineStart) {
+					foundByLine = n;
+					return;
+				}
+			}
+			n.forEachChild(walkForImport);
+		};
+		walkForImport(this.sourceFile);
+
+		if (foundByLine) return { node: foundByLine, type: "ast" };
+
 		// 3. 兼容不完整的 import 语句，例如：import from "xxx"; 通过文本+正则判断
+		// 向上逐行查找，但遇到空行立即停止——空行是语句间的自然分隔符，
+		// 这样既支持多行破损 import 的内部換行，也不会跨越空行误命中上方的 import。
 		let currentLine = position.line;
-		const maxLookBack = Math.max(0, currentLine - 30); // 最多向上查找30行，避免性能问题
+		const maxLookBack = Math.max(0, currentLine - 30);
 
 		while (currentLine >= maxLookBack) {
 			const line = this.document.lineAt(currentLine);
@@ -98,11 +120,8 @@ export class AstTool {
 				.replace(/\/\/.*$/, "")
 				.trim();
 
-			// 跳过空行和注释行
-			if (!text) {
-				currentLine--;
-				continue;
-			}
+			// 遇到空行立即停止，不然容易误命中
+			if (!text) break;
 
 			// 当前行以 import 开头 (兼容 export import 语法)
 			if (/^(export\s+)?import\b/.test(text)) {
@@ -113,14 +132,12 @@ export class AstTool {
 				};
 			}
 
-			//  失败条件 1：遇到了其他语句的开头关键字
-			// (说明光标不在 import 里，而是越界跑到了上一条普通语句里)
+			// 失败条件 1：遇到了其他语句的开头关键字
 			if (/^(const|let|var|function|class|type|interface|export)\b/.test(text)) {
 				break;
 			}
 
-			// 失败条件 2：遇到了上一条语句的明确结束符（分号）
-			// (前提是分号不在光标所在行，防止把上一行的正常代码当成 import 的一部分)
+			// 失败条件 2：非光标所在行遇到了明确的语句结束符（分号）
 			if (currentLine !== position.line && text.endsWith(";")) {
 				break;
 			}
@@ -323,7 +340,7 @@ export class AstTool {
 
 	/** 根据偏移量查找最小的 AST 节点 */
 	public findNodeAtOffset(node: ts.Node, offset: number): ts.Node | undefined {
-		if (offset < node.getStart() || offset > node.getEnd()) {
+		if (offset < node.getStart() || offset >= node.getEnd()) {
 			return undefined;
 		}
 
