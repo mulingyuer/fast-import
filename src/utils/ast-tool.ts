@@ -1,7 +1,7 @@
 /*
  * @Author: mulingyuer
  * @Date: 2026-03-19 21:10:45
- * @LastEditTime: 2026-03-23 19:24:48
+ * @LastEditTime: 2026-03-25 15:29:32
  * @LastEditors: mulingyuer
  * @Description: AST 工具
  * @FilePath: \fast-import\src\utils\ast-tool.ts
@@ -79,7 +79,9 @@ export class AstTool {
 		if (this.isPosInComment(position)) return null;
 
 		// 1. 精确查找：找到光标位置的最小 AST 节点，向上找 ImportDeclaration
-		const node = this.findNodeAtOffset(this.sourceFile, offset) ?? this.findNodeAtOffset(this.sourceFile, Math.max(0, offset - 1));
+		const node =
+			this.findNodeAtOffset(this.sourceFile, offset) ??
+			this.findNodeAtOffset(this.sourceFile, Math.max(0, offset - 1));
 		const findImportNode = node ? this.findParentNode(node, ts.isImportDeclaration) : void 0;
 
 		// 如果 AST 精确命中，直接返回
@@ -244,16 +246,25 @@ export class AstTool {
 		if (this.isPosInComment(position)) return null;
 
 		// 1. 找到光标位置的最小 AST 节点
-		const node = this.findNodeAtOffset(this.sourceFile, offset);
+		const node =
+			this.findNodeAtOffset(this.sourceFile, offset) ??
+			this.findNodeAtOffset(this.sourceFile, Math.max(0, offset - 1));
 		if (node) {
 			// 向上查找 VariableDeclaration
 			const varDecl = this.findParentNode(node, ts.isVariableDeclaration);
 			// 判断是不是简单标识符（不是解构赋值）
 			if (varDecl && ts.isIdentifier(varDecl.name)) {
-				return {
-					node: varDecl,
-					identifier: varDecl.name
-				};
+				// 仅当光标在变量名上时才直接命中，避免函数体内误命中外层变量声明
+				const nameStart = varDecl.name.getStart();
+				const nameEnd = varDecl.name.getEnd();
+				if (offset < nameStart || offset >= nameEnd) {
+					// 不在变量名上，交给后续行级规则处理
+				} else {
+					return {
+						node: varDecl,
+						identifier: varDecl.name
+					};
+				}
 			}
 		}
 
@@ -263,21 +274,19 @@ export class AstTool {
 		const lineEnd = this.document.offsetAt(line.range.end);
 
 		let result: VariableDeclarationInfo | null = null;
+		const candidates: VariableDeclarationInfo[] = [];
 
 		const walk = (n: ts.Node) => {
-			if (result) return;
-
 			if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name)) {
 				const start = n.getStart();
 				const end = n.getEnd();
 
 				// 判断节点是否与当前行有交集
 				if (start <= lineEnd && end >= lineStart) {
-					result = {
+					candidates.push({
 						node: n,
 						identifier: n.name
-					};
-					return;
+					});
 				}
 			}
 
@@ -285,6 +294,15 @@ export class AstTool {
 		};
 
 		walk(this.sourceFile);
+
+		if (candidates.length > 0) {
+			// 取范围最小的声明，避免命中外层变量（例如函数表达式包裹的 const 声明）
+			result = candidates.reduce((best, current) => {
+				const bestSpan = best.node.getEnd() - best.node.getStart();
+				const currentSpan = current.node.getEnd() - current.node.getStart();
+				return currentSpan < bestSpan ? current : best;
+			});
+		}
 
 		return result;
 	}
@@ -299,7 +317,10 @@ export class AstTool {
 
 		const node = this.findNodeAtOffset(this.sourceFile, offset);
 		if (node) {
-			return this.findParentNode(node, (n): n is ts.Statement => ts.isStatement(n) && !ts.isSourceFile(n));
+			return this.findParentNode(
+				node,
+				(n): n is ts.Statement => ts.isStatement(n) && !ts.isSourceFile(n)
+			);
 		}
 		return undefined;
 	}

@@ -130,4 +130,24 @@ suite("Extension Test Suite", () => {
 		assert.strictEqual(position.line, 0);
 		assert.strictEqual(position.character, 31); // "const { data: { list, total } " 之后是 }
 	});
+
+	test("Command: moveToBraces - Prefer inner variable declaration", async () => {
+		const content = `const a = async ()=>{
+	const b = test()
+}`;
+		const editor = await createTestEditor(content);
+
+		// 光标在内层变量声明行
+		editor.selection = new vscode.Selection(1, 16, 1, 16);
+		await vscode.commands.executeCommand("fast-import.moveToBraces");
+
+		const expected = `const a = async ()=>{
+	const { } = test()
+}`;
+		assert.strictEqual(editor.document.getText(), expected);
+
+		const position = editor.selection.active;
+		assert.strictEqual(position.line, 1);
+		assert.strictEqual(position.character, 8); // const { | } = test()
+	});
 });
