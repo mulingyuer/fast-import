@@ -1,8 +1,8 @@
 {
 	"name": "fast-import",
 	"displayName": "fast-import",
-	"version": "0.0.8",
-	"description": "fast-import extension",
+	"version": "0.1.0",
+	"description": "%extension.description%",
 	"categories": [
 		"Other"
 	],
@@ -48,30 +48,36 @@
 		"webpack": "^5.105.4",
 		"webpack-cli": "^7.0.2"
 	},
+	"l10n": "./l10n",
 	"contributes": {
 		"configuration": {
-			"title": "fast-import 配置项",
+			"title": "%configuration.title%",
 			"properties": {
 				"fast-import.enableMoveToBraces": {
 					"type": "boolean",
 					"default": true,
-					"description": "启用快速定位 Alt + I (Import/解构赋值)"
+					"description": "%configuration.enableMoveToBraces.description%"
 				},
 				"fast-import.enableOutToBraces": {
 					"type": "boolean",
 					"default": true,
-					"description": "启用快速退出 Alt + O (Import/解构赋值)"
+					"description": "%configuration.enableOutToBraces.description%"
+				},
+				"fast-import.enableTransformToDestructuring": {
+					"type": "boolean",
+					"default": true,
+					"description": "%configuration.enableTransformToDestructuring.description%"
 				}
 			}
 		},
 		"commands": [
 			{
 				"command": "fast-import.moveToBraces",
-				"title": "快速定位 (Import/解构赋值)"
+				"title": "%command.moveToBraces.title%"
 			},
 			{
 				"command": "fast-import.outToBraces",
-				"title": "快速退出 (Import/解构赋值)"
+				"title": "%command.outToBraces.title%"
 			}
 		],
 		"keybindings": [

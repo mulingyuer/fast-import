@@ -118,6 +118,25 @@ suite("Extension Test Suite", () => {
 		}
 	});
 
+	test("Configuration: fast-import.enableTransformToDestructuring", async () => {
+		const config = vscode.workspace.getConfiguration("fast-import");
+		await config.update("enableTransformToDestructuring", false, vscode.ConfigurationTarget.Global);
+
+		try {
+			const content = "const data = fetchResult();";
+			const editor = await createTestEditor(content);
+			editor.selection = new vscode.Selection(0, 6, 0, 6);
+
+			await vscode.commands.executeCommand("fast-import.moveToBraces");
+
+			assert.strictEqual(editor.document.getText(), content);
+			assert.strictEqual(editor.selection.active.line, 0);
+			assert.strictEqual(editor.selection.active.character, 6);
+		} finally {
+			await config.update("enableTransformToDestructuring", true, vscode.ConfigurationTarget.Global);
+		}
+	});
+
 	test("Command: moveToBraces - Nested Destructuring", async () => {
 		const content = "const { data: { list, total } } = res;";
 		const editor = await createTestEditor(content);

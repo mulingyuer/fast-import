@@ -1,0 +1,5 @@
+{
+	"Cursor is not inside an import, destructuring assignment, or variable declaration.": "Cursor is not inside an import, destructuring assignment, or variable declaration.",
+	"Unable to move cursor to the end of the current statement.": "Unable to move cursor to the end of the current statement.",
+	"Variable declaration to destructuring conversion is disabled. Enable `fast-import.enableTransformToDestructuring` in Settings.": "Variable declaration to destructuring conversion is disabled. Enable `fast-import.enableTransformToDestructuring` in Settings."
+}
