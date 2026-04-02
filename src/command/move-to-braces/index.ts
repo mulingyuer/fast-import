@@ -50,7 +50,7 @@ export function createMoveToBracesCommand() {
 			if (!enableTransformToDestructuring) {
 				vscode.window.showInformationMessage(
 					vscode.l10n.t(
-						"Variable declaration to destructuring conversion is disabled. You can enable it in settings."
+						"Variable declaration to destructuring conversion is disabled. Enable `fast-import.enableTransformToDestructuring` in Settings."
 					)
 				);
 				return;
