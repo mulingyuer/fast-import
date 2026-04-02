@@ -1,7 +1,7 @@
 {
 	"name": "fast-import",
 	"displayName": "fast-import",
-	"version": "0.0.8",
+	"version": "0.1.0",
 	"description": "%extension.description%",
 	"categories": [
 		"Other"
@@ -48,6 +48,7 @@
 		"webpack": "^5.105.4",
 		"webpack-cli": "^7.0.2"
 	},
+	"l10n": "./l10n",
 	"contributes": {
 		"configuration": {
 			"title": "%configuration.title%",
@@ -104,6 +105,5 @@
 	},
 	"engines": {
 		"vscode": "^1.75.0"
-	},
-	"l10n": "./l10n"
+	}
 }
