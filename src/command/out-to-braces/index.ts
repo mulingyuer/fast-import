@@ -79,7 +79,7 @@ export function createOutToBracesCommand() {
 			editor.selection = new vscode.Selection(targetPosition, targetPosition);
 			editor.revealRange(new vscode.Range(targetPosition, targetPosition));
 		} else {
-			vscode.window.showInformationMessage("无法定位到语句末尾");
+			vscode.window.showInformationMessage(vscode.l10n.t("Unable to move cursor to the end of the current statement."));
 		}
 	});
 

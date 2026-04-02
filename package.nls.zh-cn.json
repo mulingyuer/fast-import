@@ -1,0 +1,8 @@
+﻿{
+  "extension.description": "为 TypeScript 的 import 与变量声明提供智能光标定位与一键解构转换。",
+  "configuration.title": "Fast Import 设置",
+  "configuration.enableMoveToBraces.description": "启用 Alt+I 快速定位（Import/解构赋值）。",
+  "configuration.enableOutToBraces.description": "启用 Alt+O 快速退出（Import/解构赋值）。",
+  "command.moveToBraces.title": "快速定位（Import/解构赋值）",
+  "command.outToBraces.title": "快速退出（Import/解构赋值）"
+}

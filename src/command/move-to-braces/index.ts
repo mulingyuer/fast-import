@@ -45,7 +45,7 @@ export function createMoveToBracesCommand() {
 			return;
 		}
 
-		vscode.window.showInformationMessage("光标不在 import、解构赋值或变量声明语句范围内");
+		vscode.window.showInformationMessage(vscode.l10n.t("Cursor is not inside an import, destructuring assignment, or variable declaration."));
 	});
 
 	return disposable;
