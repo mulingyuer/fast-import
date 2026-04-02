@@ -1,5 +1,5 @@
-﻿{
-    "Cursor is not inside an import, destructuring assignment, or variable declaration.":  "游標不在 import、解構賦值或變數宣告語句範圍內。",
-    "Unable to move cursor to the end of the current statement.":  "無法將游標移動到目前語句末尾。",
-    "Variable declaration to destructuring conversion is disabled. You can enable it in settings.":  "變數宣告轉解構賦值功能已停用。你可以在設定中啟用。"
+{
+	"Cursor is not inside an import, destructuring assignment, or variable declaration.": "游標不在 import、解構賦值或變數宣告語句範圍內。",
+	"Unable to move cursor to the end of the current statement.": "無法將游標移動到目前語句末尾。",
+	"Variable declaration to destructuring conversion is disabled. You can enable it in settings.": "變數宣告轉解構賦值功能已停用。你可以在設定中啟用。"
 }

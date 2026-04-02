@@ -1,5 +1,5 @@
-﻿{
-    "Cursor is not inside an import, destructuring assignment, or variable declaration.":  "光标不在 import、解构赋值或变量声明语句范围内。",
-    "Unable to move cursor to the end of the current statement.":  "无法将光标移动到当前语句末尾。",
-    "Variable declaration to destructuring conversion is disabled. You can enable it in settings.":  "变量声明转解构赋值功能已禁用。你可以在设置中开启。"
+{
+	"Cursor is not inside an import, destructuring assignment, or variable declaration.": "光标不在 import、解构赋值或变量声明语句范围内。",
+	"Unable to move cursor to the end of the current statement.": "无法将光标移动到当前语句末尾。",
+	"Variable declaration to destructuring conversion is disabled. You can enable it in settings.": "变量声明转解构赋值功能已禁用。你可以在设置中开启。"
 }
