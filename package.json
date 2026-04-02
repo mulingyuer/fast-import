@@ -61,6 +61,11 @@
 					"type": "boolean",
 					"default": true,
 					"description": "%configuration.enableOutToBraces.description%"
+				},
+				"fast-import.enableTransformToDestructuring": {
+					"type": "boolean",
+					"default": true,
+					"description": "%configuration.enableTransformToDestructuring.description%"
 				}
 			}
 		},

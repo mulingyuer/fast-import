@@ -14,6 +14,8 @@ import { moveCursorToDestructuring } from "./move-cursor-destructuring";
 import { transformToDestructuring } from "./transform-to-destructuring";
 
 // export interface MoveToBracesOptions {}
+const CONFIG_NAMESPACE = "fast-import";
+const ENABLE_TRANSFORM_TO_DESTRUCTURING_CONFIG_KEY = "enableTransformToDestructuring";
 
 export function createMoveToBracesCommand() {
 	const disposable = vscode.commands.registerCommand("fast-import.moveToBraces", async () => {
@@ -41,6 +43,19 @@ export function createMoveToBracesCommand() {
 		// 光标在简单变量声明上，尝试转换为解构赋值
 		const variableInfo = astTool.getVariableDeclarationInfo();
 		if (variableInfo) {
+			const enableTransformToDestructuring = vscode.workspace
+				.getConfiguration(CONFIG_NAMESPACE)
+				.get<boolean>(ENABLE_TRANSFORM_TO_DESTRUCTURING_CONFIG_KEY, true);
+
+			if (!enableTransformToDestructuring) {
+				vscode.window.showInformationMessage(
+					vscode.l10n.t(
+						"Variable declaration to destructuring conversion is disabled. You can enable it in settings."
+					)
+				);
+				return;
+			}
+
 			transformToDestructuring({ variableInfo, astTool, editor });
 			return;
 		}

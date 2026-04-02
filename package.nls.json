@@ -3,6 +3,7 @@
   "configuration.title": "Fast Import",
   "configuration.enableMoveToBraces.description": "Enable quick navigation with Alt+I (imports/destructuring).",
   "configuration.enableOutToBraces.description": "Enable quick exit with Alt+O (imports/destructuring).",
+  "configuration.enableTransformToDestructuring.description": "Enable transforming simple variable declarations into destructuring in Quick Navigate (Alt+I).",
   "command.moveToBraces.title": "Quick Navigate (Import/Destructuring)",
   "command.outToBraces.title": "Quick Exit (Import/Destructuring)"
 }
