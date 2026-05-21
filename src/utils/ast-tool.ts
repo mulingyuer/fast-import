@@ -28,6 +28,18 @@ export interface ImportInfo {
 	type: "ast" | "regex";
 }
 
+/** export info 信息对象（具名导出：export {} / export {} from / export type {} from） */
+export interface ExportInfo {
+	/** AST 节点对象 */
+	node?: ts.ExportDeclaration;
+	/** 行文本 */
+	lineText?: string;
+	/** 行索引 */
+	lineIndex?: number;
+	/** 信息类型 */
+	type: "ast" | "regex";
+}
+
 /** 解构信息对象 */
 export interface DestructuringInfo {
 	/** AST 节点对象 */
@@ -136,6 +148,90 @@ export class AstTool {
 
 			// 失败条件 1：遇到了其他语句的开头关键字
 			if (/^(const|let|var|function|class|type|interface|export)\b/.test(text)) {
+				break;
+			}
+
+			// 失败条件 2：非光标所在行遇到了明确的语句结束符（分号）
+			if (currentLine !== position.line && text.endsWith(";")) {
+				break;
+			}
+
+			currentLine--;
+		}
+
+		return null;
+	}
+
+	/** 获取当前光标所在或关联的具名导出信息（export {} / export {} from / export type {} from） */
+	public getExportInfo(): ExportInfo | null {
+		const position = this.editor.selection.active;
+		const offset = this.document.offsetAt(position);
+
+		// 判断是不是注释
+		if (this.isPosInComment(position)) return null;
+
+		// 1. 精确查找：找到光标位置的最小 AST 节点，向上找 ExportDeclaration
+		const node =
+			this.findNodeAtOffset(this.sourceFile, offset) ??
+			this.findNodeAtOffset(this.sourceFile, Math.max(0, offset - 1));
+		const findExportNode = node ? this.findParentNode(node, ts.isExportDeclaration) : void 0;
+
+		if (
+			findExportNode &&
+			findExportNode.exportClause &&
+			ts.isNamedExports(findExportNode.exportClause)
+		) {
+			return { node: findExportNode, type: "ast" };
+		}
+
+		// 2. 行范围扫描：只要光标在 export 语句所在的行内，就算命中
+		const curLine = position.line;
+		const lineStart = this.document.offsetAt(this.document.lineAt(curLine).range.start);
+		const lineEnd = this.document.offsetAt(this.document.lineAt(curLine).range.end);
+
+		let foundByLine: ts.ExportDeclaration | undefined;
+		const walkForExport = (n: ts.Node) => {
+			if (foundByLine) return;
+			if (
+				ts.isExportDeclaration(n) &&
+				n.exportClause &&
+				ts.isNamedExports(n.exportClause)
+			) {
+				if (n.getStart() <= lineEnd && n.getEnd() >= lineStart) {
+					foundByLine = n;
+					return;
+				}
+			}
+			n.forEachChild(walkForExport);
+		};
+		walkForExport(this.sourceFile);
+
+		if (foundByLine) return { node: foundByLine, type: "ast" };
+
+		// 3. 兼容不完整的 export 语句，通过文本+正则判断
+		let currentLine = position.line;
+		const maxLookBack = Math.max(0, currentLine - 30);
+
+		while (currentLine >= maxLookBack) {
+			const line = this.document.lineAt(currentLine);
+			const text = line.text
+				.trim()
+				.replace(/\/\/.*$/, "")
+				.trim();
+
+			if (!text) break;
+
+			// 当前行以 export { 或 export type { 开头
+			if (/^export\s+(type\s+)?\{/.test(text)) {
+				return {
+					lineText: line.text,
+					lineIndex: currentLine,
+					type: "regex"
+				};
+			}
+
+			// 失败条件 1：遇到了其他语句的开头关键字
+			if (/^(const|let|var|function|class|type|interface|import)\b/.test(text)) {
 				break;
 			}
 

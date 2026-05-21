@@ -10,6 +10,7 @@
 import * as vscode from "vscode";
 import { AstTool } from "../../utils/ast-tool";
 import { moveCursorToImport } from "./move-cursor-import";
+import { moveCursorToExport } from "./move-cursor-export";
 import { moveCursorToDestructuring } from "./move-cursor-destructuring";
 import { transformToDestructuring } from "./transform-to-destructuring";
 
@@ -30,6 +31,13 @@ export function createMoveToBracesCommand() {
 		const importInfo = astTool.getImportInfo();
 		if (importInfo) {
 			moveCursorToImport({ importInfo, editor });
+			return;
+		}
+
+		// 存在具名重导出（export {} from / export type {} from）
+		const exportInfo = astTool.getExportInfo();
+		if (exportInfo) {
+			moveCursorToExport({ exportInfo, editor });
 			return;
 		}
 
@@ -60,7 +68,7 @@ export function createMoveToBracesCommand() {
 			return;
 		}
 
-		vscode.window.showInformationMessage(vscode.l10n.t("Cursor is not inside an import, destructuring assignment, or variable declaration."));
+		vscode.window.showInformationMessage(vscode.l10n.t("Cursor is not inside an import, export, destructuring assignment, or variable declaration."));
 	});
 
 	return disposable;
